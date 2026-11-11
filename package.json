@@ -1,0 +1,11 @@
+{
+  "name": "oneclient-musique",
+  "private": true,
+  "description": "Outil gratuit OneClient : acheter sa musique ou s'abonner ? Le calcul se fait dans le navigateur.",
+  "scripts": {
+    "build": "python3 build.py",
+    "test:moteur": "node tests/engine-check.mjs",
+    "test:ui": "node tests/ui-fictif.cjs"
+  },
+  "devDependencies": { "playwright": "^1.47.2" }
+}
