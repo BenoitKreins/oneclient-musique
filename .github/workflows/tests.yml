@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  tests:
+    name: Moteur et interface
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Contrôle du moteur (chiffres de référence)
+        run: node tests/engine-check.mjs
+      - name: Construction de la page
+        run: python3 build.py
+      - name: Installation de Playwright (sans télécharger de navigateur)
+        run: npm install
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      - name: Tests de l'interface (données fictives, Chrome déjà installé sur la machine)
+        run: node tests/ui-fictif.cjs
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome

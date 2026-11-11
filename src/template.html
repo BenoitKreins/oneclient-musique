@@ -1,0 +1,525 @@
+<!-- Outil musique OneClient — template.html — v2.4 — 2026-11-11 -->
+<title>Acheter sa musique ou s'abonner ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="À partir de votre historique d'écoute Spotify, voyez ce que votre écoute vous a coûté et ce que vous coûterait l'achat de vos titres sur 5 ans, avec une marge d'erreur.">
+<style>
+/*FONTS*/
+/* Layout: one narrow column. Two steps to get the data, then the results in two parts: 1. the facts (exact), 2. the 5-year projection (estimate with margins). */
+:root {
+  --bg: #F3F5F4; --surface: #FFFFFF; --ink: #15201D; --muted: #56635F; --line: #D6DDDA;
+  --accent: #0B6E66; --accent-soft: #E0EFEC;
+  --s-sub: #2F5FC4; --s-mine: #0B6E66; --s-band: #0B6E66; --s-pause: #B9C3BF; --s-start: #B0501A; --s-first: #21A398; --s-before: #DCE2E0;
+  --note-bg: #FFF3D1; --note-ink: #6E4E00;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Inter", system-ui, sans-serif; /* chiffres : Inter à chasse fixe (tabular-nums) */
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F1514; --surface: #171F1D; --ink: #E4EBE8; --muted: #9AA7A3; --line: #2A3532; --accent: #52C2B6; --accent-soft: #142E2A;
+  --s-sub: #82A6F2; --s-mine: #52C2B6; --s-band: #52C2B6; --s-pause: #4A5753; --s-start: #E99057; --s-first: #A8EDE4; --s-before: #26302D;
+  --note-bg: #362C10; --note-ink: #F0D27E; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0F1514; --surface: #171F1D; --ink: #E4EBE8; --muted: #9AA7A3; --line: #2A3532; --accent: #52C2B6; --accent-soft: #142E2A;
+  --s-sub: #82A6F2; --s-mine: #52C2B6; --s-band: #52C2B6; --s-pause: #4A5753; --s-start: #E99057; --s-first: #A8EDE4; --s-before: #26302D;
+  --note-bg: #362C10; --note-ink: #F0D27E; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px; }
+.wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 6vw, 44px); line-height: 1.08; }
+h2 { font-size: 22px; line-height: 1.2; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0; font-weight: 600; }
+p { margin: 0; }
+.lede { max-width: 62ch; font-size: 17px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 600; }
+header { display: flex; flex-direction: column; gap: 12px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+ol.how { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+.hint { font-size: 13px; color: var(--muted); max-width: 72ch; }
+.drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 22px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; justify-content: space-between; transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop strong { display: block; font-size: 16px; }
+.drop span { color: var(--muted); font-size: 14px; }
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+button, .btn { font: inherit; font-size: 14px; font-weight: 600; border-radius: 7px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); display: inline-block; }
+button.ghost { background: transparent; color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, #file:focus-visible + .btn { outline: 2px solid var(--accent); outline-offset: 2px; }
+.status { font-size: 14px; padding: 10px 12px; border-radius: 7px; background: var(--note-bg); color: var(--note-ink); }
+.privacy { font-size: 13px; color: var(--muted); }
+.results { background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; padding: 22px 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.reshead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.badge { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: var(--note-bg); color: var(--note-ink); }
+.badge.mine { background: var(--accent); color: var(--surface); }
+.resmeta { font-size: 13px; color: var(--muted); }
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fig { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fig b { font-family: var(--mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fig span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; list-style: none; margin: 0; padding: 0; }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.legend li.br { flex-basis: 100%; height: 0; margin: -4px 0; }
+.sw { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.line { height: 3px; width: 18px; }
+.fansubs { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13px; max-width: 360px; }
+.fansubs li { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 8px; padding: 2px 0; color: var(--muted); }
+.fansubs li.low { color: var(--s-sub); font-weight: 700; }
+.fansubs .amt { text-align: right; font-variant-numeric: tabular-nums; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; vertical-align: top; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; vertical-align: bottom; }
+td small { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; }
+tr.mine td { background: var(--accent-soft); font-weight: 600; }
+tr.sub td { color: var(--muted); }
+.big { font-family: var(--display); font-size: clamp(20px, 3.6vw, 25px); line-height: 1.3; text-wrap: pretty; max-width: 46ch; }
+.facts { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 72ch; }
+.fragile { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--note-bg); color: var(--note-ink); margin-left: 4px; }
+fieldset.q { border: 1px solid var(--line); border-radius: 8px; margin: 0; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; background: var(--bg); }
+fieldset.q legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.radio { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--ink); }
+.radio input { width: auto; margin-top: 4px; }
+label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+input, select { font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; font-variant-numeric: tabular-nums; }
+input[readonly] { background: var(--bg); color: var(--muted); cursor: default; }
+.groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .groups { grid-template-columns: minmax(0, 1fr); } }
+.group { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); margin: 0; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group legend { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); padding: 0 4px; }
+.split { display: flex; flex-direction: column; gap: 8px; }
+.split .bar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.split .bar span { display: flex; align-items: center; padding: 0 10px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; overflow: hidden; }
+.split .fav { background: var(--accent); color: var(--surface); }
+.split .disc { background: var(--surface); color: var(--ink); }
+.split .keys { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 13px; color: var(--muted); }
+.top5 { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.top5 li { overflow-wrap: anywhere; }
+.top5 small { color: var(--muted); }
+.limits { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; max-width: 72ch; }
+.limits.quiet { color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 560px) { table { font-size: 13px; } th, td { padding: 8px 5px; }
+  /* Tableau des stratégies sur téléphone : une carte par stratégie */
+  #stratTable thead { display: none; }
+  #stratTable tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; padding: 10px 6px; border-bottom: 1px solid var(--line); }
+  #stratTable td { border: 0; padding: 0; text-align: left; background: transparent !important; }
+  #stratTable td:first-child { grid-column: 1 / -1; font-weight: 600; }
+  #stratTable td::before { content: attr(data-label); display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+  #stratTable td:first-child::before { content: none; }
+  #stratTable tr.mine { background: var(--accent-soft); border-radius: 6px; }
+  #stratTable td small { white-space: normal; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ===== Mise en page aérée et étapes de la projection ===== */
+.wrap { gap: 36px; }
+.panel { padding: 24px; gap: 16px; }
+.results { padding: 26px 22px; gap: 26px; }
+.step { scroll-margin-top: 16px; }
+.sub h3 { scroll-margin-top: 16px; }
+[hidden] { display: none !important; }
+.sub { gap: 14px; padding-top: 6px; border-top: 1px solid var(--line); }
+.sub:first-of-type { border-top: 0; padding-top: 0; }
+.sub h3 { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); }
+.tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.tag.edit { color: var(--accent); }
+.tag svg { width: 16px; height: 16px; }
+.measured { background: var(--bg); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+fieldset.q.plain { border: 0; padding: 0; background: transparent; }
+fieldset.q.plain legend { padding: 0; margin-bottom: 10px; font-size: 15px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 680px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+.card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); cursor: pointer; font-size: 14px; }
+.card:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.card input { position: absolute; top: 14px; right: 14px; width: auto; }
+.card svg { width: 60px; height: 24px; color: var(--accent); }
+.card span { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.card em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--accent); }
+.inline { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.inline label { flex: 1 1 280px; color: var(--ink); font-size: 14px; font-weight: 600; }
+.inline input { max-width: 180px; }
+button.small { padding: 7px 12px; font-size: 13px; }
+.lvlbody { display: flex; flex-direction: column; gap: 14px; }
+.hint.strong { color: var(--ink); font-weight: 600; }
+.lead2 { max-width: 70ch; font-size: 16px; }
+.after { display: flex; flex-direction: column; gap: 22px; border-top: 1px solid var(--line); padding-top: 20px; }
+.after section { gap: 10px; }
+.facts { gap: 10px; }
+
+.period { font-size: 15px; font-weight: 600; color: var(--ink); }
+.loader { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+.lbar { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.lbar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.lsteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.lsteps li::before { content: "○"; display: inline-block; width: 1.4em; color: var(--muted); }
+.lsteps li.now { color: var(--ink); font-weight: 600; }
+.lsteps li.now::before { content: "●"; color: var(--accent); }
+.lsteps li.done { color: var(--ink); }
+.loader.finished .lsteps { display: none; }
+.lsteps li.done::before { content: "✓"; color: var(--accent); }
+
+/* Sous-éléments des résultats : chaque graphique ou tableau dans son propre cadre */
+.block { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.block .fig { background: var(--surface); }
+.block .chart svg { background: transparent; }
+.block h3 + h3, .block .hint + h3 { margin-top: 8px; }
+.quietblock { gap: 18px; }
+.quietblock section { gap: 10px; }
+.quietblock .limits { color: var(--muted); font-size: 13.5px; }
+@media (max-width: 560px) { .block { padding: 14px 12px; } }
+.limitgroups { display: flex; flex-direction: column; gap: 16px; }
+.limitgroups > div { display: flex; flex-direction: column; gap: 8px; }
+a.btn { text-decoration: none; }
+a.btn.ghostlink { background: transparent; color: var(--accent); }
+.cardimg { width: 100%; max-width: 420px; height: auto; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+body, .num, .fig b, table, svg text { font-variant-numeric: tabular-nums; }
+
+/* ===== Trois niveaux : la réponse, affiner, le détail ===== */
+.lede { font-size: 18px; }
+.keyline { font-size: 17px; max-width: 64ch; }
+.sumcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sumcards:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 720px) { .sumcards { grid-template-columns: minmax(0, 1fr); } .sumcard.hl { order: -1; } }
+.sumcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sumcard.hl { border: 2px solid var(--accent); box-shadow: 0 0 0 4px var(--bg); }
+.sumcard .lab { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.sumcard.hl .lab { color: var(--accent); }
+.sumcard .val { font-size: 34px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.sumcard .cov { font-size: 16px; font-weight: 600; }
+.sumcard .det { font-size: 14px; color: var(--muted); }
+.fragnote { font-size: 14px; }
+.fragnote a, .linkbtn { color: var(--accent); }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 0; }
+.example { display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
+details.fold > summary, details.level > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; min-height: 44px; }
+details.fold > summary::-webkit-details-marker, details.level > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before, details.level > summary::before { content: ""; flex: none; width: 9px; height: 9px; border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); transition: transform .15s; margin: 0 4px 0 2px; }
+details[open].fold > summary::before, details[open].level > summary::before { transform: rotate(45deg); }
+details.fold > summary { font-weight: 600; color: var(--accent); }
+details.fold.small > summary { font-size: 14px; min-height: 36px; }
+.foldbody { display: flex; flex-direction: column; gap: 14px; padding: 6px 0 4px; }
+details.level { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+details.level > summary { padding: 14px 18px; }
+details.level > summary > span { flex: 1 1 0; min-width: 0; font-family: var(--display); font-weight: 600; font-size: 20px; }
+details.level > summary { flex-wrap: wrap; }
+details.level > summary > small { flex-basis: 100%; padding-left: 25px; font-size: 14px; color: var(--muted); font-weight: 400; }
+details#refine { border: 2px solid var(--accent); }
+.levelbody { padding: 4px 18px 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.details3 { display: flex; flex-direction: column; gap: 10px; }
+.compare { background: var(--bg); }
+.advbody { gap: 22px; }
+.advbody .sub { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.advbody .sub:first-child { border-top: 0; padding-top: 0; }
+.results { gap: 20px; }
+@media (max-width: 560px) { .levelbody { padding: 4px 12px 16px; } details.level > summary { padding: 12px; } .sumcard .val { font-size: 30px; } }
+.resultsgroup { display: flex; flex-direction: column; gap: 28px; }
+#resDetail { background: var(--surface); }
+#resDetail details.level { background: var(--bg); }
+.reshead h2 { font-size: 26px; }
+.resmeta { font-size: 14px; color: var(--muted); margin-top: -10px; }
+#ldetail { white-space: pre-line; }
+.subs { display: flex; flex-direction: column; gap: 6px; }
+.subrow { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.subrow:last-child { border-bottom: 0; }
+.subrow label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 15px; }
+.subrow label.chk input { width: auto; }
+.subrow small { color: var(--muted); font-size: 12px; }
+.subrow .subwarn { grid-column: 1 / -1; margin: 0; padding-left: 8px; border-left: 3px solid var(--s-start); font-size: 13px; }
+.subrow .price { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.subrow .price input { padding: 6px 8px; }
+#resAbout { background: var(--surface); }
+#resAbout details.level { background: var(--bg); }
+.recap { font-size: 16px; font-weight: 600; background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; }
+.showdetail { justify-content: center; }
+@media (max-width: 520px) { .subrow { grid-template-columns: minmax(0, 1fr) 104px; } .subrow .price input { padding: 6px; } }
+.cta { border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); max-width: 100%; }
+.cta p { max-width: 70ch; font-size: 15px; color: var(--muted); }
+.cta .ctaq { font-weight: 700; color: var(--ink); font-size: 16px; }
+.sitebar { margin: -28px calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 28px calc(-1 * max(16px, env(safe-area-inset-left, 0px))); background: #F0F6F5; border-bottom: 1px solid var(--line); }
+.sitebar-in { max-width: 1200px; margin: 0 auto; padding: 18px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; }
+.sitebar a { color: #15201D; text-decoration: none; }
+.sitebar .brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+.sitebar nav { display: flex; flex-wrap: wrap; gap: 4px 26px; font-size: 16px; }
+.sitebar nav a:hover, .footnav a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 560px) { .sitebar-in { padding: 12px 16px; } .sitebar nav { gap: 4px 16px; font-size: 15px; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sitebar { background: var(--surface); } :root:not([data-theme="light"]) .sitebar a { color: var(--ink); } }
+:root[data-theme="dark"] .sitebar { background: var(--surface); } :root[data-theme="dark"] .sitebar a { color: var(--ink); }
+footer { display: flex; flex-direction: column; gap: 10px; }
+.footnav { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; }
+.footnav a { color: var(--ink); text-decoration: none; }
+.status.warn { border-left: 4px solid var(--note-ink); }
+</style>
+
+<!-- ===== TEXTES FIXES DE LA PAGE : modifiables directement entre les balises ===== -->
+<!-- En-tête du site (sans logo pour l'instant) -->
+<div class="sitebar"><div class="sitebar-in"><a class="brand" href="https://oneclient.be/">OneClient</a><nav aria-label="Site OneClient"><a href="https://oneclient.be/">Accueil</a><a href="https://oneclient.be/#audit">Audit</a><a href="https://oneclient.be/#services">Services</a><a href="https://oneclient.be/#contact">Contact</a><a href="https://oneclient.be/blog/">Blog</a></nav></div></div>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Outil gratuit</div>
+    <h1>Acheter sa musique ou s'abonner&nbsp;?</h1>
+    <p class="lede">Vous hésitez entre un abonnement et l'achat de vos titres ? Déposez votre historique d'écoute Spotify : l'outil calcule ce que chaque choix vous coûterait sur 5&nbsp;ans.</p>
+  </header>
+
+  <!-- ACCUEIL : un seul geste -->
+  <section class="panel" id="start">
+    <div class="drop" id="drop">
+      <div>
+        <strong>Déposez ici le fichier .zip reçu de Spotify</strong>
+        <span>Vous pouvez aussi déposer le dossier décompressé ou ses fichiers .json.</span>
+      </div>
+      <div class="btns">
+        <input type="file" id="file" class="vh" multiple accept=".zip,.json,application/zip,application/x-zip-compressed,application/json">
+        <label for="file" class="btn" id="pick">Choisir un fichier</label>
+      </div>
+    </div>
+    <p class="privacy">Votre fichier reste sur votre appareil : il n'est envoyé nulle part, et rien n'est gardé quand vous fermez la page.</p>
+    <p class="status" id="status" role="alert" hidden></p>
+    <div class="loader" id="loader" role="status" aria-live="polite" hidden>
+      <div class="lbar"><span id="lfill"></span></div>
+      <ol class="lsteps" id="lsteps">
+        <li data-step="read">Lecture du fichier</li>
+        <li data-step="unzip">Décompression</li>
+        <li data-step="parse">Analyse des écoutes</li>
+        <li data-step="model">Calcul des estimations</li>
+      </ol>
+      <p class="hint" id="ldetail"></p>
+    </div>
+    <p class="status warn" id="lwarn" role="alert" hidden></p>
+
+    <details class="fold" id="howto">
+      <summary>Comment demander mon fichier Spotify ?</summary>
+      <div class="foldbody">
+        <ol class="how">
+          <li>Ouvrez la page <b>« Confidentialité du compte »</b> de Spotify (bouton ci-dessous) et connectez-vous.</li>
+          <li>Dans la partie pour télécharger vos données, cochez seulement l'<b>historique de streaming étendu</b>, puis envoyez la demande.</li>
+          <li>Confirmez la demande avec le lien reçu par e-mail.</li>
+          <li>Après quelques jours (jusqu'à 30), un e-mail vous prévient que vos données sont prêtes. Cliquez sur le bouton de téléchargement et connectez-vous : le fichier .zip se télécharge.</li>
+        </ol>
+        <div class="btns">
+          <a class="btn" href="https://www.spotify.com/account/privacy/" target="_blank" rel="noopener noreferrer">Ouvrir la page Spotify « Confidentialité du compte »</a>
+          <a class="btn ghostlink" href="https://support.spotify.com/article/understanding-my-data/" target="_blank" rel="noopener noreferrer">L'aide de Spotify sur vos données</a>
+        </div>
+        <p class="hint">Le fichier contient votre historique depuis la création du compte, mais ni votre nom ni vos paiements. Il indique aussi l'adresse IP de chaque écoute : l'outil ne la lit jamais. Pour une estimation fiable, il faut au moins 12 mois d'écoute.</p>
+      </div>
+    </details>
+
+    <div class="example">
+      <p>En attendant votre fichier, <button type="button" class="linkbtn" id="typeBtn">essayez avec un exemple.</button></p>
+      <details class="fold small" id="typeBox">
+        <summary>Personnaliser l'exemple</summary>
+        <div class="foldbody">
+          <p class="hint">L'outil invente 12 mois d'écoute qui suivent ces choix. Les résultats sont fictifs.</p>
+          <div class="groups">
+            <label for="gStart">Au départ, vous prenez…<select id="gStart"><option value="prudent">Prudent : quelques titres</option><option value="connu" selected>Ce que vous connaissez déjà</option><option value="grandSaut">Grand saut : beaucoup tout de suite</option></select></label>
+            <label for="gCruise">Ensuite, vos découvertes sont…<select id="gCruise"><option value="constante" selected>Constantes</option><option value="saturation">De moins en moins nombreuses</option><option value="dents">Par vagues</option></select></label>
+            <label for="gPerDay">Écoutes par jour<input id="gPerDay" type="number" min="1" max="200" step="1" value="25"></label>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div id="results" class="resultsgroup" hidden>
+  <section class="results" aria-live="polite" id="resBrief">
+    <!-- NIVEAU 1 : la réponse -->
+    <div class="reshead">
+      <h2>Vos résultats en bref</h2>
+      <span class="badge" id="badge">Exemple fictif</span>
+    </div>
+    <p class="resmeta" id="resMeta"></p>
+    <p class="keyline" id="keyLine"></p>
+    <h3>Ce que vous paieriez sur 5 ans</h3>
+    <div class="sumcards" id="sumCards"></div>
+    <p class="fragnote" id="fragNote" hidden></p>
+
+    <div class="block" id="shareBlock">
+      <h3>Partager vos résultats</h3>
+      <p class="hint">Une image à publier sur les réseaux sociaux. Elle est créée sur votre appareil et ne montre que vos chiffres, jamais vos titres.</p>
+      <div class="btns"><button type="button" id="cardMake">Créer mon image</button></div>
+      <img id="cardImg" class="cardimg" alt="Aperçu de votre image de résultats" hidden>
+      <div class="btns">
+        <button type="button" id="cardShare" hidden>Partager l'image</button>
+        <a class="btn ghostlink" id="cardDl" download="mon-analyse-musique.png" hidden>Télécharger l'image</a>
+      </div>
+    </div>
+    <div class="btns showdetail"><button type="button" id="showDetail">Voir les résultats détaillés</button></div>
+
+  </section>
+
+  <!-- APPEL À L'ACTION : pour les entreprises, discret -->
+  <aside class="cta" id="cta" aria-label="OneClient pour les entreprises">
+    <p class="ctaq">Vous avez une entreprise, un commerce ou une activité d'indépendant ?</p>
+    <p>OneClient analyse les données de vos clients pour mesurer l'écart entre ce que vous voulez leur offrir et ce qu'ils reçoivent vraiment, comme cet outil l'a fait pour votre écoute.</p>
+    <div class="btns"><a class="btn ghostlink" href="https://oneclient.be/#audit" target="_blank" rel="noopener">Découvrir l'audit OneClient</a></div>
+  </aside>
+
+  <!-- NIVEAU 3 : le détail, au même niveau -->
+  <section class="results details3" id="resDetail" hidden>
+    <div class="reshead"><h2>Vos résultats en détail</h2></div>
+    <p class="resmeta">Votre calcul personnalisé, puis les chiffres complets : d'abord le passé, mesuré dans votre fichier, puis l'avenir, estimé.</p>
+      <details class="level" id="refinePanel">
+        <summary><span>Personnaliser le calcul</span><small>Sélectionnez vos préférences d'achat et les abonnements à comparer. Chaque changement se répercute sur vos résultats.</small></summary>
+        <div class="levelbody">
+    <p class="recap" id="refineRecap" aria-live="polite"></p>
+        <fieldset class="q" id="stratChoice">
+          <legend>Comment voulez-vous acheter ?</legend>
+        </fieldset>
+        <fieldset class="group compare">
+          <legend>Abonnements comparés</legend>
+          <p class="hint">Cochez un ou plusieurs services.</p>
+          <div class="subs" id="subsList"></div>
+          <p class="hint" id="subsNote" aria-live="polite" hidden></p>
+        </fieldset>
+
+        <details class="fold" id="advanced">
+          <summary>Réglages avancés</summary>
+          <div class="foldbody advbody">
+            <section class="sub" aria-labelledby="hA">
+              <h3 id="hA">Votre façon d'écouter</h3>
+              <div class="measured"><p class="tag">Ce que dit votre fichier</p><ul class="facts" id="profileFacts"></ul></div>
+              <fieldset class="q plain">
+                <legend>Comment évoluent vos découvertes d'un mois à l'autre ?</legend>
+                <div class="cards" id="cruiseCards">
+                  <label class="card"><input type="radio" name="cruise" value="constante"><svg viewBox="0 0 60 24" aria-hidden="true"><g fill="currentColor"><rect x="2" y="10" width="7" height="14"/><rect x="12" y="10" width="7" height="14"/><rect x="22" y="10" width="7" height="14"/><rect x="32" y="10" width="7" height="14"/><rect x="42" y="10" width="7" height="14"/><rect x="52" y="10" width="7" height="14"/></g></svg><b>Au même rythme</b><span>À peu près autant de nouveaux favoris chaque mois.</span><em class="detected" hidden>Reconnu dans votre fichier</em></label>
+                  <label class="card"><input type="radio" name="cruise" value="saturation"><svg viewBox="0 0 60 24" aria-hidden="true"><g fill="currentColor"><rect x="2" y="2" width="7" height="22"/><rect x="12" y="8" width="7" height="16"/><rect x="22" y="13" width="7" height="11"/><rect x="32" y="17" width="7" height="7"/><rect x="42" y="19" width="7" height="5"/><rect x="52" y="21" width="7" height="3"/></g></svg><b>De moins en moins</b><span>Vous avez trouvé ce que vous aimez : les nouveautés se font rares.</span><em class="detected" hidden>Reconnu dans votre fichier</em></label>
+                  <label class="card"><input type="radio" name="cruise" value="dents"><svg viewBox="0 0 60 24" aria-hidden="true"><g fill="currentColor"><rect x="2" y="4" width="7" height="20"/><rect x="12" y="19" width="7" height="5"/><rect x="22" y="6" width="7" height="18"/><rect x="32" y="20" width="7" height="4"/><rect x="42" y="5" width="7" height="19"/><rect x="52" y="18" width="7" height="6"/></g></svg><b>Par vagues</b><span>Des mois riches en découvertes, puis des creux.</span><em class="detected" hidden>Reconnu dans votre fichier</em></label>
+                </div>
+                <p class="hint" id="cruiseNote"></p>
+              </fieldset>
+              <div class="inline">
+                <label for="rhythm">Combien de nouveaux favoris ajoutez-vous par mois, en moyenne ?<input id="rhythm" type="number" min="0" step="0.5" inputmode="decimal"></label>
+                <button type="button" class="ghost small" id="rhythmReset" hidden>Revenir à la valeur mesurée</button>
+              </div>
+              <p class="hint" id="rhythmNote"></p>
+            </section>
+
+            <section class="sub" aria-labelledby="hB">
+              <h3 id="hB">Vos découvertes à venir</h3>
+              <p class="hint">L'estimation suppose que vous découvrirez au même rythme qu'aujourd'hui. Dans la réalité, il varie : au travail, on réécoute souvent les mêmes titres ; en voiture ou le week-end, on laisse tourner et on découvre.</p>
+              <label for="q3_all">Dans les mois à venir, vous pensez découvrir…<select id="q3_all" data-q3="all"><option value="moins">Moins qu'aujourd'hui</option><option value="autant" selected>Autant qu'aujourd'hui</option><option value="plus">Plus qu'aujourd'hui</option></select></label>
+            </section>
+
+            <section class="sub" aria-labelledby="hC">
+              <h3 id="hC">Prix d'achat et façon de compter</h3>
+              <div class="groups">
+                <fieldset class="group">
+                  <legend>Achat à l'unité</legend>
+                  <label for="pTrack">Un titre (€)<input id="pTrack" type="number" step="0.01" min="0.01" value="1.29"></label>
+                  <label for="pAlbum">Un album (€)<input id="pAlbum" type="number" step="0.01" min="0" value="10.99"></label>
+                </fieldset>
+                <fieldset class="group">
+                  <legend>Façon de compter</legend>
+                  <label for="pPeriod">Période du constat<select id="pPeriod"><option value="6">6 derniers mois</option><option value="12" selected>12 derniers mois</option><option value="all">Tout l'historique</option></select></label>
+                  <label for="pMin">Écoutes pour un favori<input id="pMin" type="number" step="1" min="1" value="5"></label>
+                  <label for="pWeeks">Semaines différentes pour un favori<input id="pWeeks" type="number" step="1" min="1" value="1"></label>
+                </fieldset>
+              </div>
+              <p class="note" id="pricesNote">Prix relevés en Belgique en octobre 2026 : Spotify Premium 13,99 €, Apple Music 11,99 €, YouTube Music 10,99 €, YouTube Premium 13,99 €, Deezer Premium 11,99 € et Amazon Music Unlimited 12,14 € par mois ; un titre 1,29 € et un album 10,99 € sur l'iTunes Store. « Semaines différentes » : mettez 3, par exemple, pour ne garder comme favoris que les titres écoutés régulièrement, et pas seulement pendant quelques jours.</p>
+            </section>
+          </div>
+        </details>
+          </div>
+      </details>
+
+
+      <details class="level" id="detEcoute">
+        <summary><span id="pastTitle">Le passé : vos 12 derniers mois</span><small>Les chiffres exacts de votre fichier : vos écoutes, ce qu'elles vous auraient coûté, mois par mois, et vos titres les plus écoutés.</small></summary>
+        <div class="levelbody">
+          <p class="period" id="constatPeriod"></p>
+          <div class="block">
+            <div class="figures" id="figures"></div>
+            <div class="tablewrap"><table id="constatTable"></table></div>
+            <p class="hint" id="constatHint"></p>
+          </div>
+          <div class="block">
+            <h3>Favoris ou découverte ?</h3>
+            <div class="split" id="split"></div>
+          </div>
+          <div class="block">
+            <h3>Votre écoute mois par mois</h3>
+            <ul class="legend" id="monthsLegend"></ul>
+            <div class="chart" id="monthsChart"></div>
+          </div>
+          <div class="block">
+            <h3>Vos 5 titres les plus écoutés</h3>
+            <ol class="top5" id="top5"></ol>
+          </div>
+        </div>
+      </details>
+
+      <details class="level" id="detStrat">
+        <summary><span>L'avenir : les 5 prochaines années</span><small>Une estimation : ce que coûterait chaque façon d'acheter, avec sa marge d'erreur, comparée à l'abonnement.</small></summary>
+        <div class="levelbody">
+          <p class="big" id="pVerdict"></p>
+          <p id="pSub" class="lead2"></p>
+          <div class="block" id="fanBlock">
+            <h3>Ce que votre stratégie coûte, mois après mois</h3>
+            <ul class="legend" id="fanLegend"></ul>
+            <div class="chart" id="fan"></div>
+            <ul class="fansubs" id="fanSubs" aria-label="Abonnements comparés, coût sur 5 ans" hidden></ul>
+          </div>
+          <div class="block">
+            <h3>Toutes les stratégies, comparées sur 5 ans</h3>
+            <div class="tablewrap"><table id="stratTable"></table></div>
+            <p class="hint" id="stratHint"></p>
+          </div>
+        </div>
+      </details>
+
+  </section>
+
+  <!-- À savoir : visible dès que le fichier est chargé -->
+  <section class="results details3 aside" id="resAbout">
+    <div class="reshead"><h2>À savoir</h2></div>
+      <details class="level" id="detLimits">
+        <summary><span>Hypothèses et limites</span><small>Ce que la projection suppose et comment l'outil calcule.</small></summary>
+        <div class="levelbody">
+          <div class="limitgroups" id="limits"></div>
+        </div>
+      </details>
+
+      <details class="level" id="detPrivacy">
+        <summary><span>Confidentialité et avertissement</span><small>Ce que l'outil fait de votre fichier, et ce que ses résultats valent.</small></summary>
+        <div class="levelbody quietblock">
+          <section id="donnees">
+            <h3>Confidentialité de vos données</h3>
+            <ul class="limits">
+              <li>Votre fichier est lu par votre navigateur, sur votre appareil. Il n'est jamais envoyé à OneClient ni à personne d'autre, et rien n'est conservé quand vous fermez la page. Vous pouvez le vérifier : ouvrez la page, coupez votre connexion, puis chargez votre fichier. L'outil fonctionne toujours.</li>
+              <li>La page interdit à votre navigateur toute connexion vers l'extérieur : même par erreur, rien ne peut partir.</li>
+              <li>Le fichier de Spotify indique l'adresse IP de chaque écoute : l'outil ne la lit jamais.</li>
+              <li>Cette page n'utilise ni cookie ni script de mesure d'audience. Le serveur compte seulement le nombre de visites par jour, sans enregistrer d'adresse IP. Comme pour tout site web, l'hébergeur enregistre dans ses journaux techniques l'adresse IP et l'heure de chaque visite de la page ; ces journaux ne contiennent rien de votre fichier.</li>
+              <li>Si vous cliquez vers une autre page de oneclient.be, votre navigateur lui indique que vous venez de cet outil. Les autres sites, Spotify compris, ne reçoivent pas cette information.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Avertissement</h3>
+            <ul class="limits">
+              <li>Cet outil donne une estimation, à titre indicatif, à partir de votre historique et des prix que vous indiquez. Ce n'est ni un conseil financier ni un conseil juridique.</li>
+              <li>Les prix des services changent : vérifiez-les avant de décider. Les résultats dépendent aussi de l'exactitude du fichier fourni par Spotify.</li>
+              <li>OneClient ne peut être tenu responsable d'une décision prise sur la base de ces résultats, ni d'une erreur de lecture du fichier. La décision vous appartient.</li>
+            </ul>
+          </section>
+        </div>
+      </details>
+  </section>
+  </div>
+
+  <footer>
+    <nav class="footnav" aria-label="Informations légales"><a href="https://oneclient.be/mentions-legales/">Mentions légales</a><a href="https://oneclient.be/politique-de-confidentialite/">Politique de confidentialité</a><a href="https://oneclient.be/conditions-generales-de-prestation-de-services/">Conditions générales de prestation</a><a href="https://oneclient.be/glossaire/">Glossaire</a></nav>
+    <p>L'outil lit l'export de Spotify. Outil conçu par OneClient et développé avec l'aide d'une intelligence artificielle (Claude). Compatible avec l'export de données de Spotify, sans lien avec Spotify ni Apple.</p>
+  </footer>
+</div>
+
+<!-- ===== CODE : lecture du fichier, calculs, puis phrases générées (repères « TEXTE ») ===== -->
+<script>
+"use strict";
+/*ENGINE*/
+/*UNZIP*/
+/*UI*/
+</script>

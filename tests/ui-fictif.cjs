@@ -1,0 +1,32 @@
+// Tests de l'interface avec des fichiers fictifs uniquement (aucune donnée personnelle). Lancer après « python3 build.py ».
+const { chromium } = require('playwright'); const path = require('path');
+const root = path.join(__dirname, '..'), fx = n => path.join(__dirname, 'fixtures', n), URL = 'file://' + path.join(root, 'dist', 'page.html');
+const res = []; const rec = (id, name, ok, d = '') => res.push({ id, name, ok, d });
+(async () => {
+  const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--headless=new'] }); const p = await (await b.newContext({ viewport: { width: 1280, height: 900 }, timezoneId: 'Europe/Brussels' })).newPage();
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); await p.goto(URL); await p.waitForTimeout(300);
+  const load = async f => { await p.evaluate(() => { ldetail.textContent = ''; document.getElementById('status').hidden = true; }); await p.setInputFiles('#file', fx(f)); await p.waitForFunction(() => /Terminé/.test(ldetail.textContent) || !document.getElementById('status').hidden, null, { timeout: 60000 }); await p.waitForTimeout(500); };
+  const st = () => p.evaluate(() => ({ status: document.getElementById('status').hidden ? '' : document.getElementById('status').textContent, detail: ldetail.textContent, cards: [...sumCards.querySelectorAll('.val')].map(x => x.textContent.replace(/[  ]/g, ' ')) }));
+  const ensure = async () => { await p.evaluate(() => { if (resDetail.hidden) showDetail.click(); refinePanel.open = true; advanced.open = true; }); await p.waitForTimeout(300); };
+  await load('exemple.json'); let s = await st(); rec('F1', 'Exemple chargé comme fichier : cartes 719 € / 124 € / 365 €', s.cards.join() === '719 €,124 €,365 €', s.cards.join(' / '));
+  await ensure(); const recap = () => p.evaluate(() => refineRecap.textContent), hl = () => p.evaluate(() => document.querySelector('#stratTable tr.mine td').textContent);
+  const r0 = await recap(); await p.check('input[name=strat][value=build]'); await p.waitForTimeout(800); const r1 = await recap(), h1 = await hl();
+  await p.check('input[name=strat][value=favs]'); await p.waitForTimeout(800); const r2 = await recap(); await p.check('input[name=strat][value=every]'); await p.waitForTimeout(800); const r3 = await recap();
+  await p.check('input[name=strat][value=half]'); await p.waitForTimeout(800); const r4 = await recap();
+  rec('F2', 'Quatre stratégies, une seule ligne en évidence', new Set([r0, r1, r2, r3]).size === 4 && r4 === r0 && /^Petit à petit/.test(h1) && (await p.$$('input[name=strat]')).length === 4, h1.slice(0, 20));
+  await load('exemple9.json'); rec('F3', 'Exemple coupé à 9 mois : « Estimation fragile »', await p.evaluate(() => !fragNote.hidden && /Estimation fragile/.test(fragNote.textContent)));
+  await load('courtes.json'); s = await st(); rec('F4', '50 écoutes de 10 s : message, résultats masqués', /30 secondes/.test(s.status) && await p.evaluate(() => results.hidden) && !/Terminé/.test(s.detail), s.status.slice(0, 50));
+  await load('standard.json'); s = await st(); rec('F5', 'Export standard : message dédié', /C'est l'export standard : demandez l'historique de streaming étendu/.test(s.status), s.status);
+  await load('casse.json'); s = await st(); rec('F6', 'Fichier cassé : un message', !!s.status);
+  await load('exemple.json'); await ensure();
+  const wr = () => p.evaluate(() => ({ rows: [...document.querySelectorAll('#subsList [data-warn]')].filter(x => !x.hidden).map(x => x.dataset.warn), note: subsNote.hidden ? '' : subsNote.textContent.replace(/[  ]/g, ' ') }));
+  await p.check('#subsList input[data-sub="Autre service"]'); await p.waitForTimeout(700); let w = await wr(); rec('F7', 'Abonnement sans prix : message sous la ligne', w.rows.join() === 'Autre service' && !w.note);
+  for (const x of await p.$$('#subsList input[data-sub]')) await x.uncheck(); await p.check('#subsList input[data-sub="Autre service"]'); await p.waitForTimeout(700); w = await wr(); rec('F8', 'Aucun prix : Spotify Premium', /Spotify Premium, à 13,99/.test(w.note), w.note);
+  await p.uncheck('#subsList input[data-sub="Autre service"]'); await p.check('#subsList input[data-sub="Spotify Premium"]'); await p.check('#subsList input[data-sub="Apple Music"]'); await p.waitForTimeout(700);
+  const rows = () => p.evaluate(() => [...document.querySelectorAll('#stratTable tbody tr:not(.sub)')].map(r => ({ l: r.cells[0].textContent, c: +r.cells[1].childNodes[0].textContent.replace(/[^\d]/g, '') })));
+  const a = (await rows()).find(x => /chaque nouveau/.test(x.l)).c; await p.check('input[name=cruise][value=dents]'); await p.waitForTimeout(900); const d = (await rows()).find(x => /chaque nouveau/.test(x.l)).c;
+  rec('F9', '« Par vagues » choisi à la main : la moyenne est conservée', Math.abs(d - a) / a < 0.03, `${a} € → ${d} €`);
+  rec('F10', 'Aucune erreur JavaScript', errs.length === 0, errs.slice(0, 2).join(' | '));
+  for (const r of res) console.log((r.ok ? '✓ ' : '✗ ') + r.id.padEnd(4) + r.name + (r.d ? '  — ' + r.d : ''));
+  await b.close(); process.exit(res.every(r => r.ok) ? 0 : 1);
+})();
