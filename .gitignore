@@ -1,0 +1,8 @@
+node_modules/
+dist/
+# Compteur de visites du serveur et données d'écoute personnelles : jamais dans le dépôt
+donnees/
+*.zip
+!tests/fixtures/*.zip
+my_spotify_data*
+Spotify*
